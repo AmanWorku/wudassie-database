@@ -16,27 +16,30 @@ app.use(
 	})
 );
 
-// CORS configuration
-const allowedOrigins = [
-	"http://localhost:5173",
-	"http://localhost:3000",
-	"https://wudassie-database.netlify.app",
-];
-
+// CORS configuration - Allow all origins
 app.use(
 	cors({
-		origin: function (origin, callback) {
-			if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-				callback(null, true);
-			} else {
-				callback(new Error("Not allowed by CORS"));
-			}
-		},
+		origin: "*", // Allow all origins
 		methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-		allowedHeaders: ["Content-Type", "Authorization"],
-		credentials: true,
+		allowedHeaders: [
+			"Content-Type",
+			"Authorization",
+			"Accept",
+			"Origin",
+			"X-Requested-With",
+			"X-Platform",
+			"X-App-Version",
+		],
+		exposedHeaders: [
+			"Content-Length",
+			"Content-Type",
+			"X-Platform",
+			"X-App-Version",
+		],
+		credentials: false, // Must be false when origin is '*'
 		preflightContinue: false,
 		optionsSuccessStatus: 204,
+		maxAge: 86400, // 24 hours
 	})
 );
 
