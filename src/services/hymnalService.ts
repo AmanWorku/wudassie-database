@@ -7,8 +7,7 @@ class HymnalService {
     credentials: 'include' as const,
     headers: {
       'Content-Type': 'application/json',
-    },
-    mode: 'cors' as const
+    }
   };
 
   async getHagerignaHymns(): Promise<HagerignaHymn[]> {

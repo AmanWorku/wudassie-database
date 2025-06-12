@@ -19,7 +19,7 @@ app.use(
 // CORS configuration - Allow all origins
 app.use(
 	cors({
-		origin: "*", // Allow all origins
+		origin: true, // This will reflect the request origin
 		methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 		allowedHeaders: [
 			"Content-Type",
@@ -36,7 +36,7 @@ app.use(
 			"X-Platform",
 			"X-App-Version",
 		],
-		credentials: false, // Must be false when origin is '*'
+		credentials: true,
 		preflightContinue: false,
 		optionsSuccessStatus: 204,
 		maxAge: 86400, // 24 hours
