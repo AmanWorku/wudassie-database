@@ -49,10 +49,7 @@ const MusicDashboard: React.FC = () => {
         hymnalService.getHagerignaHymns(),
         hymnalService.getSDAHymns()
       ]);
-      
-      console.log('Loaded Hagerigna hymns:', hagerignaData.length, hagerignaData.slice(0, 2));
-      console.log('Loaded SDA hymns:', sdaData.length, sdaData.slice(0, 2));
-      
+    
       setHagerignaHymns(hagerignaData);
       setSdaHymns(sdaData);
       setFilteredHagerignaHymns(hagerignaData);
@@ -306,7 +303,7 @@ const MusicDashboard: React.FC = () => {
                 {/* Hymns Display */}
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
           {(() => {
-            console.log('Rendering hymns display. Active hymnal:', activeHymnal, 'Current count:', getCurrentCount(), 'Filtered hymns:', activeHymnal === 'hagerigna' ? filteredHagerignaHymns.length : filteredSdaHymns.length);
+            // console.log('Rendering hymns display. Active hymnal:', activeHymnal, 'Current count:', getCurrentCount(), 'Filtered hymns:', activeHymnal === 'hagerigna' ? filteredHagerignaHymns.length : filteredSdaHymns.length);
             return null;
           })()}
           {getCurrentCount() === 0 ? (

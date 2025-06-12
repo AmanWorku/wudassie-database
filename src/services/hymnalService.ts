@@ -1,7 +1,8 @@
 import { HagerignaHymn, SDAHymn, HymnalType } from '../types/Song';
+import { API_BASE_URL } from '../config/api';
 
 class HymnalService {
-  private baseUrl = 'http://localhost:5002/api';
+  private baseUrl = API_BASE_URL;
 
   async getHagerignaHymns(): Promise<HagerignaHymn[]> {
     try {
@@ -10,7 +11,7 @@ class HymnalService {
         throw new Error('Failed to fetch Hagerigna hymns');
       }
       const data = await response.json();
-      console.log('Raw Hagerigna API response:', data.slice(0, 2));
+      // console.log('Raw Hagerigna API response:', data.slice(0, 2));
       return data; // API already returns the correct format
     } catch (error) {
       console.error('Error fetching Hagerigna hymns:', error);
@@ -25,7 +26,7 @@ class HymnalService {
         throw new Error('Failed to fetch SDA hymns');
       }
       const data = await response.json();
-      console.log('Raw SDA API response:', data.slice(0, 2));
+      // console.log('Raw SDA API response:', data.slice(0, 2));
       return data; // API already returns the correct format
     } catch (error) {
       console.error('Error fetching SDA hymns:', error);

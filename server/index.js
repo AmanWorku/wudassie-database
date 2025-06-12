@@ -12,7 +12,10 @@ const PORT = process.env.PORT || 5002;
 app.use(helmet());
 app.use(
 	cors({
-		origin: ["http://localhost:5173", "http://localhost:3000"],
+		origin:
+			process.env.NODE_ENV === "production"
+				? [process.env.FRONTEND_URL || "https://YOUR_APP_NAME.netlify.app"]
+				: ["http://localhost:5173", "http://localhost:3000"],
 		credentials: true,
 	})
 );

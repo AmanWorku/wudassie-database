@@ -9,7 +9,7 @@ interface SDATableProps {
 }
 
 const SDATable: React.FC<SDATableProps> = ({ hymns, onEdit, onDelete }) => {
-  console.log('SDATable received hymns:', hymns.length, hymns.slice(0, 2));
+  // console.log('SDATable received hymns:', hymns.length, hymns.slice(0, 2));
   
   const formatLyrics = (lyrics: string) => {
     return lyrics.replace(/\\n/g, '\n');

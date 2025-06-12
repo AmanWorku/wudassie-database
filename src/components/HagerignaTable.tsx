@@ -9,7 +9,7 @@ interface HagerignaTableProps {
 }
 
 const HagerignaTable: React.FC<HagerignaTableProps> = ({ hymns, onEdit, onDelete }) => {
-  console.log('HagerignaTable received hymns:', hymns.length, hymns.slice(0, 2));
+  // console.log('HagerignaTable received hymns:', hymns.length, hymns.slice(0, 2));
   
   return (
     <div className="overflow-x-auto">
