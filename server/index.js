@@ -9,16 +9,35 @@ const app = express();
 const PORT = process.env.PORT || 5002;
 
 // Middleware
-app.use(helmet());
 app.use(
-	cors({
-		origin:
-			process.env.NODE_ENV === "production"
-				? [process.env.FRONTEND_URL || "https://wudassie-database.netlify.app"]
-				: ["http://localhost:5173", "http://localhost:3000"],
-		credentials: true,
+	helmet({
+		crossOriginResourcePolicy: { policy: "cross-origin" },
+		crossOriginOpenerPolicy: { policy: "unsafe-none" },
 	})
 );
+
+// CORS configuration
+const allowedOrigins = [
+	"http://localhost:5173",
+	"http://localhost:3000",
+	"https://wudassie-database.netlify.app",
+];
+
+app.use(
+	cors({
+		origin: function (origin, callback) {
+			if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+				callback(null, true);
+			} else {
+				callback(new Error("Not allowed by CORS"));
+			}
+		},
+		credentials: true,
+		methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+		allowedHeaders: ["Content-Type", "Authorization"],
+	})
+);
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 

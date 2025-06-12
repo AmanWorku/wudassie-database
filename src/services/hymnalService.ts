@@ -3,10 +3,16 @@ import { API_BASE_URL } from '../config/api';
 
 class HymnalService {
   private baseUrl = API_BASE_URL;
+  private fetchOptions = {
+    credentials: 'include' as const,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  };
 
   async getHagerignaHymns(): Promise<HagerignaHymn[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/hagerigna`);
+      const response = await fetch(`${this.baseUrl}/hagerigna`, this.fetchOptions);
       if (!response.ok) {
         throw new Error('Failed to fetch Hagerigna hymns');
       }
@@ -21,7 +27,7 @@ class HymnalService {
 
   async getSDAHymns(): Promise<SDAHymn[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/sda`);
+      const response = await fetch(`${this.baseUrl}/sda`, this.fetchOptions);
       if (!response.ok) {
         throw new Error('Failed to fetch SDA hymns');
       }
@@ -37,10 +43,8 @@ class HymnalService {
   async updateHagerignaHymn(id: string, hymnData: Partial<HagerignaHymn>): Promise<HagerignaHymn> {
     try {
       const response = await fetch(`${this.baseUrl}/hagerigna/${id}`, {
+        ...this.fetchOptions,
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(hymnData),
       });
       
@@ -58,10 +62,8 @@ class HymnalService {
   async updateSDAHymn(id: string, hymnData: Partial<SDAHymn>): Promise<SDAHymn> {
     try {
       const response = await fetch(`${this.baseUrl}/sda/${id}`, {
+        ...this.fetchOptions,
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(hymnData),
       });
       
@@ -79,10 +81,8 @@ class HymnalService {
   async addHagerignaHymn(hymnData: Omit<HagerignaHymn, 'id'>): Promise<HagerignaHymn> {
     try {
       const response = await fetch(`${this.baseUrl}/hagerigna`, {
+        ...this.fetchOptions,
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(hymnData),
       });
       
@@ -100,10 +100,8 @@ class HymnalService {
   async addSDAHymn(hymnData: Omit<SDAHymn, 'id'>): Promise<SDAHymn> {
     try {
       const response = await fetch(`${this.baseUrl}/sda`, {
+        ...this.fetchOptions,
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(hymnData),
       });
       
@@ -121,6 +119,7 @@ class HymnalService {
   async deleteHagerignaHymn(id: string): Promise<void> {
     try {
       const response = await fetch(`${this.baseUrl}/hagerigna/${id}`, {
+        ...this.fetchOptions,
         method: 'DELETE',
       });
       
@@ -136,6 +135,7 @@ class HymnalService {
   async deleteSDAHymn(id: string): Promise<void> {
     try {
       const response = await fetch(`${this.baseUrl}/sda/${id}`, {
+        ...this.fetchOptions,
         method: 'DELETE',
       });
       
@@ -150,7 +150,7 @@ class HymnalService {
 
   async searchHymns(query: string, type: HymnalType): Promise<HagerignaHymn[] | SDAHymn[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/${type}/search?q=${encodeURIComponent(query)}`);
+      const response = await fetch(`${this.baseUrl}/${type}/search?q=${encodeURIComponent(query)}`, this.fetchOptions);
       if (!response.ok) {
         throw new Error(`Failed to search ${type} hymns`);
       }
