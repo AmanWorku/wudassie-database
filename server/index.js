@@ -23,8 +23,13 @@ app.use(
 		methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 		allowedHeaders: ["Content-Type", "Authorization"],
 		credentials: true,
+		preflightContinue: false,
+		optionsSuccessStatus: 204,
 	})
 );
+
+// Handle OPTIONS requests
+app.options("*", cors());
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
