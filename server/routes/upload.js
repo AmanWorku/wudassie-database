@@ -6,12 +6,41 @@ import { v4 as uuidv4 } from "uuid";
 
 const router = express.Router();
 
-// Initialize ImageKit
-const imagekit = new ImageKit({
-	publicKey: process.env.IMAGEKIT_PUBLIC_KEY || "",
-	privateKey: process.env.IMAGEKIT_PRIVATE_KEY || "",
-	urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT || "",
+// Test endpoint to verify route is working
+router.get("/test", (req, res) => {
+	res.json({
+		message: "Upload route is working",
+		envCheck: {
+			publicKey: process.env.IMAGEKIT_PUBLIC_KEY ? "✅ Set" : "❌ Not set",
+			privateKey: process.env.IMAGEKIT_PRIVATE_KEY ? "✅ Set" : "❌ Not set",
+			urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT ? "✅ Set" : "❌ Not set",
+		},
+	});
 });
+
+// Lazy initialization of ImageKit (only when needed)
+let imagekit = null;
+
+const getImageKit = () => {
+	if (!imagekit) {
+		const publicKey = process.env.IMAGEKIT_PUBLIC_KEY;
+		const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
+		const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT;
+
+		if (!publicKey || !privateKey || !urlEndpoint) {
+			throw new Error(
+				"ImageKit not configured. Please set IMAGEKIT_PUBLIC_KEY, IMAGEKIT_PRIVATE_KEY, and IMAGEKIT_URL_ENDPOINT environment variables"
+			);
+		}
+
+		imagekit = new ImageKit({
+			publicKey,
+			privateKey,
+			urlEndpoint,
+		});
+	}
+	return imagekit;
+};
 
 // Configure multer for memory storage
 const storage = multer.memoryStorage();
@@ -40,6 +69,9 @@ router.post("/image", upload.single("image"), async (req, res) => {
 			return res.status(400).json({ error: "No image file provided" });
 		}
 
+		// Get ImageKit instance (will throw if not configured)
+		const imagekitInstance = getImageKit();
+
 		// Optimize image using sharp
 		let optimizedImage;
 		if (req.file.mimetype === "image/png") {
@@ -62,7 +94,7 @@ router.post("/image", upload.single("image"), async (req, res) => {
 
 		// Upload to ImageKit
 		const fileExtension = req.file.mimetype === "image/png" ? "png" : "jpg";
-		const uploadResponse = await imagekit.upload({
+		const uploadResponse = await imagekitInstance.upload({
 			file: optimizedImage,
 			fileName: `${uuidv4()}.${fileExtension}`,
 			folder: "/hymns/sheet-music/",
@@ -84,6 +116,9 @@ router.post("/images", upload.array("images", 3), async (req, res) => {
 		if (!req.files || req.files.length === 0) {
 			return res.status(400).json({ error: "No image files provided" });
 		}
+
+		// Get ImageKit instance (will throw if not configured)
+		const imagekitInstance = getImageKit();
 
 		const uploadPromises = req.files.map(async (file) => {
 			// Optimize image using sharp
@@ -108,7 +143,7 @@ router.post("/images", upload.array("images", 3), async (req, res) => {
 
 			// Upload to ImageKit
 			const fileExtension = file.mimetype === "image/png" ? "png" : "jpg";
-			return imagekit.upload({
+			return imagekitInstance.upload({
 				file: optimizedImage,
 				fileName: `${uuidv4()}.${fileExtension}`,
 				folder: "/hymns/sheet-music/",
@@ -123,7 +158,11 @@ router.post("/images", upload.array("images", 3), async (req, res) => {
 		});
 	} catch (error) {
 		console.error("Error uploading images:", error);
-		res.status(500).json({ error: "Failed to upload images" });
+		const statusCode = error.message.includes("not configured") ? 500 : 500;
+		res.status(statusCode).json({
+			error: "Failed to upload images",
+			details: error.message,
+		});
 	}
 });
 
@@ -134,8 +173,11 @@ router.post("/audio", upload.single("audio"), async (req, res) => {
 			return res.status(400).json({ error: "No audio file provided" });
 		}
 
+		// Get ImageKit instance (will throw if not configured)
+		const imagekitInstance = getImageKit();
+
 		// Upload to ImageKit (ImageKit supports audio files)
-		const uploadResponse = await imagekit.upload({
+		const uploadResponse = await imagekitInstance.upload({
 			file: req.file.buffer,
 			fileName: `${uuidv4()}.${req.file.originalname.split(".").pop()}`,
 			folder: "/hymns/audio/",
@@ -147,9 +189,12 @@ router.post("/audio", upload.single("audio"), async (req, res) => {
 		});
 	} catch (error) {
 		console.error("Error uploading audio:", error);
-		res.status(500).json({ error: "Failed to upload audio" });
+		const statusCode = error.message.includes("not configured") ? 500 : 500;
+		res.status(statusCode).json({
+			error: "Failed to upload audio",
+			details: error.message,
+		});
 	}
 });
 
 export default router;
-

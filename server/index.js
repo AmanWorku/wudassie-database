@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -5,6 +8,50 @@ import songRoutes from "./routes/songs.js";
 import hymnRoutes from "./routes/hymns.js";
 import uploadRoutes from "./routes/upload.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+
+// Load .env file - try multiple possible paths
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+// Try multiple possible paths for .env file
+const possiblePaths = [
+	join(__dirname, ".env"), // In server directory (most likely)
+	join(__dirname, "..", ".env"), // In project root
+	join(process.cwd(), ".env"), // From current working directory
+	join(process.cwd(), "..", ".env"), // One level up from cwd
+];
+let envPath = null;
+let result = { error: null };
+
+for (const path of possiblePaths) {
+	result = dotenv.config({ path });
+	if (!result.error) {
+		envPath = path;
+		break;
+	}
+}
+
+if (result.error || !envPath) {
+	console.warn("⚠️  Warning: Could not load .env file");
+	console.warn("Tried paths:", possiblePaths);
+	if (result.error) {
+		console.warn("Error:", result.error.message);
+	}
+} else {
+	console.log("✅ .env file loaded successfully");
+	console.log("📍 Env file path:", envPath);
+	console.log(
+		"🔑 IMAGEKIT_PUBLIC_KEY:",
+		process.env.IMAGEKIT_PUBLIC_KEY ? "✅ Set" : "❌ Not set"
+	);
+	console.log(
+		"🔑 IMAGEKIT_PRIVATE_KEY:",
+		process.env.IMAGEKIT_PRIVATE_KEY ? "✅ Set" : "❌ Not set"
+	);
+	console.log(
+		"🔑 IMAGEKIT_URL_ENDPOINT:",
+		process.env.IMAGEKIT_URL_ENDPOINT ? "✅ Set" : "❌ Not set"
+	);
+}
 
 const app = express();
 const PORT = process.env.PORT || 5002;
