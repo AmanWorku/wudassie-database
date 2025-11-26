@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, X } from 'lucide-react';
+import { Edit, X, X as XIcon } from 'lucide-react';
 import Modal from './ui/Modal';
-import { SDAHymn } from '../types/Song';
+import { SDAHymn, HYMN_CATEGORIES } from '../types/Song';
+import { hymnalService } from '../services/hymnalService';
 
 interface EditSDAModalProps {
   isOpen: boolean;
@@ -20,9 +21,14 @@ const EditSDAModal: React.FC<EditSDAModalProps> = ({
     newHymnalTitle: '',
     newHymnalLyrics: '',
     englishTitleOld: '',
+    category: '',
+    sheet_music: [] as string[],
+    audio: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
 
   useEffect(() => {
     if (hymn) {
@@ -30,6 +36,9 @@ const EditSDAModal: React.FC<EditSDAModalProps> = ({
         newHymnalTitle: hymn.newHymnalTitle || '',
         newHymnalLyrics: hymn.newHymnalLyrics || '',
         englishTitleOld: hymn.englishTitleOld || '',
+        category: hymn.category || '',
+        sheet_music: hymn.sheet_music || [],
+        audio: hymn.audio || '',
       });
     }
   }, [hymn]);
@@ -52,6 +61,9 @@ const EditSDAModal: React.FC<EditSDAModalProps> = ({
       ...formData,
       oldHymnalTitle: '', // Keep for backend compatibility
       oldHymnalLyrics: '', // Keep for backend compatibility
+      category: formData.category || undefined,
+      sheet_music: formData.sheet_music.length > 0 ? formData.sheet_music : undefined,
+      audio: formData.audio || undefined,
     });
     handleClose();
   };
@@ -61,6 +73,9 @@ const EditSDAModal: React.FC<EditSDAModalProps> = ({
       newHymnalTitle: '',
       newHymnalLyrics: '',
       englishTitleOld: '',
+      category: '',
+      sheet_music: [],
+      audio: '',
     });
     setErrors({});
     onClose();
@@ -70,6 +85,56 @@ const EditSDAModal: React.FC<EditSDAModalProps> = ({
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(file => {
+        formData.append('images', file);
+      });
+
+      const response = await hymnalService.uploadImages(formData);
+      setFormData(prev => ({
+        ...prev,
+        sheet_music: [...prev.sheet_music, ...response.urls].slice(0, 3)
+      }));
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      setErrors(prev => ({ ...prev, sheet_music: 'Failed to upload images' }));
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      sheet_music: prev.sheet_music.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingAudio(true);
+    try {
+      const formData = new FormData();
+      formData.append('audio', file);
+
+      const response = await hymnalService.uploadAudio(formData);
+      setFormData(prev => ({ ...prev, audio: response.url }));
+    } catch (error) {
+      console.error('Error uploading audio:', error);
+      setErrors(prev => ({ ...prev, audio: 'Failed to upload audio' }));
+    } finally {
+      setUploadingAudio(false);
     }
   };
 
@@ -154,6 +219,89 @@ const EditSDAModal: React.FC<EditSDAModalProps> = ({
               {errors.newHymnalLyrics && (
                 <p className="mt-1 text-sm text-red-600">{errors.newHymnalLyrics}</p>
               )}
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => handleChange('category', e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select a category</option>
+                {HYMN_CATEGORIES.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sheet Music Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sheet Music (up to 3 images)
+              </label>
+              <div className="space-y-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  disabled={uploadingImages || formData.sheet_music.length >= 3}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                {uploadingImages && (
+                  <p className="text-sm text-gray-500">Uploading images...</p>
+                )}
+                {formData.sheet_music.length > 0 && (
+                  <div className="space-y-2">
+                    {formData.sheet_music.map((url, index) => (
+                      <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                        <span className="flex-1 text-sm text-gray-700 truncate">{url}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(index)}
+                          className="p-1 text-red-600 hover:text-red-800"
+                        >
+                          <XIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {errors.sheet_music && (
+                  <p className="mt-1 text-sm text-red-600">{errors.sheet_music}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Audio Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Audio File
+              </label>
+              <div className="space-y-2">
+                <input
+                  type="file"
+                  accept="audio/*"
+                  onChange={handleAudioUpload}
+                  disabled={uploadingAudio}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                {uploadingAudio && (
+                  <p className="text-sm text-gray-500">Uploading audio...</p>
+                )}
+                {formData.audio && (
+                  <div className="p-2 bg-gray-50 rounded">
+                    <p className="text-sm text-gray-700 truncate">{formData.audio}</p>
+                  </div>
+                )}
+                {errors.audio && (
+                  <p className="mt-1 text-sm text-red-600">{errors.audio}</p>
+                )}
+              </div>
             </div>
           </div>
 

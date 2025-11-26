@@ -41,9 +41,22 @@ const findArrayByName = (data, name) => {
 	return data.resources?.array?.find((arr) => arr._name === name);
 };
 
+// Helper function to get or create array by name
+const getOrCreateArray = (data, name) => {
+	let array = findArrayByName(data, name);
+	if (!array) {
+		array = { item: [], _name: name };
+		if (!data.resources) data.resources = {};
+		if (!data.resources.array) data.resources.array = [];
+		data.resources.array.push(array);
+	}
+	return array;
+};
+
 // Helper function to get max length of all arrays
 const getMaxArrayLength = (arrays) => {
-	return Math.max(...arrays.map((arr) => arr.item.length));
+	if (arrays.length === 0) return 0;
+	return Math.max(...arrays.map((arr) => arr.item.length || 0));
 };
 
 export const appendToHagerignaFile = async (newHymn) => {
@@ -57,9 +70,17 @@ export const appendToHagerignaFile = async (newHymn) => {
 		throw new Error("Invalid data structure");
 	}
 
+	// Get or create arrays for new fields
+	const categoryArray = getOrCreateArray(data, "category");
+	const sheetMusicArray = getOrCreateArray(data, "sheet_music");
+	const audioArray = getOrCreateArray(data, "audio");
+
 	artistArray.item.push(newHymn.artist || "");
 	songArray.item.push(newHymn.song || "");
 	titleArray.item.push(newHymn.title || "");
+	categoryArray.item.push(newHymn.category || "");
+	sheetMusicArray.item.push(JSON.stringify(newHymn.sheet_music || []));
+	audioArray.item.push(newHymn.audio || "");
 
 	await writeJsonFile("HagerignaData.json", data);
 	return {
@@ -87,11 +108,19 @@ export const appendToSDAFile = async (newHymn) => {
 		throw new Error("Invalid data structure");
 	}
 
+	// Get or create arrays for new fields
+	const categoryArray = getOrCreateArray(data, "category");
+	const sheetMusicArray = getOrCreateArray(data, "sheet_music");
+	const audioArray = getOrCreateArray(data, "audio");
+
 	newTitleArray.item.push(newHymn.newHymnalTitle || "");
 	oldTitleArray.item.push(newHymn.oldHymnalTitle || "");
 	newLyricsArray.item.push(newHymn.newHymnalLyrics || "");
 	englishTitleArray.item.push(newHymn.englishTitleOld || "");
 	oldLyricsArray.item.push(newHymn.oldHymnalLyrics || "");
+	categoryArray.item.push(newHymn.category || "");
+	sheetMusicArray.item.push(JSON.stringify(newHymn.sheet_music || []));
+	audioArray.item.push(newHymn.audio || "");
 
 	await writeJsonFile("SDA_Hymnal.json", data);
 	return {
@@ -117,18 +146,46 @@ export const updateHagerignaFile = async (id, updatedHymn) => {
 		throw new Error("Hymn not found");
 	}
 
+	// Get or create arrays for new fields
+	const categoryArray = getOrCreateArray(data, "category");
+	const sheetMusicArray = getOrCreateArray(data, "sheet_music");
+	const audioArray = getOrCreateArray(data, "audio");
+
+	// Ensure arrays are long enough
+	while (categoryArray.item.length <= index) categoryArray.item.push("");
+	while (sheetMusicArray.item.length <= index) sheetMusicArray.item.push("[]");
+	while (audioArray.item.length <= index) audioArray.item.push("");
+
 	if (updatedHymn.artist !== undefined)
 		artistArray.item[index] = updatedHymn.artist;
 	if (updatedHymn.song !== undefined) songArray.item[index] = updatedHymn.song;
 	if (updatedHymn.title !== undefined)
 		titleArray.item[index] = updatedHymn.title;
+	if (updatedHymn.category !== undefined)
+		categoryArray.item[index] = updatedHymn.category || "";
+	if (updatedHymn.sheet_music !== undefined)
+		sheetMusicArray.item[index] = JSON.stringify(updatedHymn.sheet_music || []);
+	if (updatedHymn.audio !== undefined)
+		audioArray.item[index] = updatedHymn.audio || "";
 
 	await writeJsonFile("HagerignaData.json", data);
+	
+	// Parse sheet_music for return
+	let sheetMusic = [];
+	try {
+		sheetMusic = JSON.parse(sheetMusicArray.item[index] || "[]");
+	} catch {
+		sheetMusic = [];
+	}
+
 	return {
 		id,
 		artist: artistArray.item[index],
 		song: songArray.item[index],
 		title: titleArray.item[index],
+		category: categoryArray.item[index] || undefined,
+		sheet_music: sheetMusic.length > 0 ? sheetMusic : undefined,
+		audio: audioArray.item[index] || undefined,
 	};
 };
 
@@ -163,6 +220,16 @@ export const updateSDAFile = async (id, updatedHymn) => {
 		throw new Error("Hymn not found");
 	}
 
+	// Get or create arrays for new fields
+	const categoryArray = getOrCreateArray(data, "category");
+	const sheetMusicArray = getOrCreateArray(data, "sheet_music");
+	const audioArray = getOrCreateArray(data, "audio");
+
+	// Ensure arrays are long enough
+	while (categoryArray.item.length <= index) categoryArray.item.push("");
+	while (sheetMusicArray.item.length <= index) sheetMusicArray.item.push("[]");
+	while (audioArray.item.length <= index) audioArray.item.push("");
+
 	if (updatedHymn.newHymnalTitle !== undefined)
 		newTitleArray.item[index] = updatedHymn.newHymnalTitle;
 	if (updatedHymn.oldHymnalTitle !== undefined)
@@ -173,8 +240,23 @@ export const updateSDAFile = async (id, updatedHymn) => {
 		englishTitleArray.item[index] = updatedHymn.englishTitleOld;
 	if (updatedHymn.oldHymnalLyrics !== undefined)
 		oldLyricsArray.item[index] = updatedHymn.oldHymnalLyrics;
+	if (updatedHymn.category !== undefined)
+		categoryArray.item[index] = updatedHymn.category || "";
+	if (updatedHymn.sheet_music !== undefined)
+		sheetMusicArray.item[index] = JSON.stringify(updatedHymn.sheet_music || []);
+	if (updatedHymn.audio !== undefined)
+		audioArray.item[index] = updatedHymn.audio || "";
 
 	await writeJsonFile("SDA_Hymnal.json", data);
+	
+	// Parse sheet_music for return
+	let sheetMusic = [];
+	try {
+		sheetMusic = JSON.parse(sheetMusicArray.item[index] || "[]");
+	} catch {
+		sheetMusic = [];
+	}
+
 	return {
 		id,
 		newHymnalTitle: newTitleArray.item[index],
@@ -182,6 +264,9 @@ export const updateSDAFile = async (id, updatedHymn) => {
 		newHymnalLyrics: newLyricsArray.item[index],
 		englishTitleOld: englishTitleArray.item[index],
 		oldHymnalLyrics: oldLyricsArray.item[index],
+		category: categoryArray.item[index] || undefined,
+		sheet_music: sheetMusic.length > 0 ? sheetMusic : undefined,
+		audio: audioArray.item[index] || undefined,
 	};
 };
 
@@ -202,9 +287,16 @@ export const deleteFromHagerignaFile = async (id) => {
 		throw new Error("Hymn not found");
 	}
 
+	const categoryArray = findArrayByName(data, "category");
+	const sheetMusicArray = findArrayByName(data, "sheet_music");
+	const audioArray = findArrayByName(data, "audio");
+
 	artistArray.item.splice(index, 1);
 	songArray.item.splice(index, 1);
 	titleArray.item.splice(index, 1);
+	if (categoryArray) categoryArray.item.splice(index, 1);
+	if (sheetMusicArray) sheetMusicArray.item.splice(index, 1);
+	if (audioArray) audioArray.item.splice(index, 1);
 
 	await writeJsonFile("HagerignaData.json", data);
 };
@@ -240,11 +332,18 @@ export const deleteFromSDAFile = async (id) => {
 		throw new Error("Hymn not found");
 	}
 
+	const categoryArray = findArrayByName(data, "category");
+	const sheetMusicArray = findArrayByName(data, "sheet_music");
+	const audioArray = findArrayByName(data, "audio");
+
 	newTitleArray.item.splice(index, 1);
 	oldTitleArray.item.splice(index, 1);
 	newLyricsArray.item.splice(index, 1);
 	englishTitleArray.item.splice(index, 1);
 	oldLyricsArray.item.splice(index, 1);
+	if (categoryArray) categoryArray.item.splice(index, 1);
+	if (sheetMusicArray) sheetMusicArray.item.splice(index, 1);
+	if (audioArray) audioArray.item.splice(index, 1);
 
 	await writeJsonFile("SDA_Hymnal.json", data);
 };

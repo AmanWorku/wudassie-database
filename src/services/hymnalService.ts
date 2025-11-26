@@ -160,6 +160,44 @@ class HymnalService {
       throw error;
     }
   }
+
+  async uploadImages(formData: FormData): Promise<{ urls: string[]; fileIds: string[] }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/upload/images`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload images');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      throw error;
+    }
+  }
+
+  async uploadAudio(formData: FormData): Promise<{ url: string; fileId: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/upload/audio`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload audio');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error uploading audio:', error);
+      throw error;
+    }
+  }
 }
 
 export const hymnalService = new HymnalService(); 

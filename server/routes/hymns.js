@@ -32,12 +32,31 @@ router.get("/hagerigna", async (req, res) => {
 			titleArray.length
 		);
 
+		const categoryArray =
+			data.resources?.array?.find((arr) => arr._name === "category")?.item ||
+			[];
+		const sheetMusicArray =
+			data.resources?.array?.find((arr) => arr._name === "sheet_music")
+				?.item || [];
+		const audioArray =
+			data.resources?.array?.find((arr) => arr._name === "audio")?.item || [];
+
 		for (let i = 0; i < maxLength; i++) {
+			let sheetMusic = [];
+			try {
+				sheetMusic = JSON.parse(sheetMusicArray[i] || "[]");
+			} catch {
+				sheetMusic = [];
+			}
+
 			hymns.push({
 				id: `hagerigna-${i}`,
 				artist: artistArray[i] || "",
 				song: songArray[i] || "",
 				title: titleArray[i] || "",
+				category: categoryArray[i] || undefined,
+				sheet_music: sheetMusic.length > 0 ? sheetMusic : undefined,
+				audio: audioArray[i] || undefined,
 			});
 		}
 
@@ -79,7 +98,23 @@ router.get("/sda", async (req, res) => {
 			oldLyricsArray.length
 		);
 
+		const categoryArray =
+			data.resources?.array?.find((arr) => arr._name === "category")?.item ||
+			[];
+		const sheetMusicArray =
+			data.resources?.array?.find((arr) => arr._name === "sheet_music")
+				?.item || [];
+		const audioArray =
+			data.resources?.array?.find((arr) => arr._name === "audio")?.item || [];
+
 		for (let i = 0; i < maxLength; i++) {
+			let sheetMusic = [];
+			try {
+				sheetMusic = JSON.parse(sheetMusicArray[i] || "[]");
+			} catch {
+				sheetMusic = [];
+			}
+
 			hymns.push({
 				id: `sda-${i}`,
 				newHymnalTitle: newTitleArray[i] || "",
@@ -87,6 +122,9 @@ router.get("/sda", async (req, res) => {
 				newHymnalLyrics: newLyricsArray[i] || "",
 				englishTitleOld: englishTitleArray[i] || "",
 				oldHymnalLyrics: oldLyricsArray[i] || "",
+				category: categoryArray[i] || undefined,
+				sheet_music: sheetMusic.length > 0 ? sheetMusic : undefined,
+				audio: audioArray[i] || undefined,
 			});
 		}
 
@@ -186,12 +224,31 @@ router.get("/hagerigna/search", async (req, res) => {
 		);
 		const query = String(q).toLowerCase();
 
+		const categoryArray =
+			data.resources?.array?.find((arr) => arr._name === "category")?.item ||
+			[];
+		const sheetMusicArray =
+			data.resources?.array?.find((arr) => arr._name === "sheet_music")
+				?.item || [];
+		const audioArray =
+			data.resources?.array?.find((arr) => arr._name === "audio")?.item || [];
+
 		for (let i = 0; i < maxLength; i++) {
+			let sheetMusic = [];
+			try {
+				sheetMusic = JSON.parse(sheetMusicArray[i] || "[]");
+			} catch {
+				sheetMusic = [];
+			}
+
 			const hymn = {
 				id: `hagerigna-${i}`,
 				artist: artistArray[i] || "",
 				song: songArray[i] || "",
 				title: titleArray[i] || "",
+				category: categoryArray[i] || undefined,
+				sheet_music: sheetMusic.length > 0 ? sheetMusic : undefined,
+				audio: audioArray[i] || undefined,
 			};
 
 			if (
@@ -243,7 +300,23 @@ router.get("/sda/search", async (req, res) => {
 		);
 		const query = String(q).toLowerCase();
 
+		const categoryArray =
+			data.resources?.array?.find((arr) => arr._name === "category")?.item ||
+			[];
+		const sheetMusicArray =
+			data.resources?.array?.find((arr) => arr._name === "sheet_music")
+				?.item || [];
+		const audioArray =
+			data.resources?.array?.find((arr) => arr._name === "audio")?.item || [];
+
 		for (let i = 0; i < maxLength; i++) {
+			let sheetMusic = [];
+			try {
+				sheetMusic = JSON.parse(sheetMusicArray[i] || "[]");
+			} catch {
+				sheetMusic = [];
+			}
+
 			const hymn = {
 				id: `sda-${i}`,
 				newHymnalTitle: newTitleArray[i] || "",
@@ -251,6 +324,9 @@ router.get("/sda/search", async (req, res) => {
 				newHymnalLyrics: newLyricsArray[i] || "",
 				englishTitleOld: englishTitleArray[i] || "",
 				oldHymnalLyrics: oldLyricsArray[i] || "",
+				category: categoryArray[i] || undefined,
+				sheet_music: sheetMusic.length > 0 ? sheetMusic : undefined,
+				audio: audioArray[i] || undefined,
 			};
 
 			if (
