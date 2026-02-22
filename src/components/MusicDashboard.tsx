@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Music, Plus, Search, BookOpen, Heart } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Music, Plus, Search, BookOpen, Heart, Youtube, Trash2 } from 'lucide-react';
 import HagerignaTable from './HagerignaTable';
 import SDATable from './SDATable';
 import AddHagerignaModal from './AddHagerignaModal';
@@ -10,9 +10,10 @@ import DeleteConfirmModal from './DeleteConfirmModal';
 import LoadingSpinner from './ui/LoadingSpinner';
 import { useToast } from './ui/Toaster';
 import { hymnalService } from '../services/hymnalService';
-import { HagerignaHymn, SDAHymn, HymnalType } from '../types/Song';
+import { HagerignaHymn, SDAHymn, HymnalType, YouTubeLink } from '../types/Song';
 
 const MusicDashboard: React.FC = () => {
+  const [activeSection, setActiveSection] = useState<'sda' | 'hagerigna' | 'youtube'>('sda');
   const [activeHymnal, setActiveHymnal] = useState<HymnalType>('sda');
   const [hagerignaHymns, setHagerignaHymns] = useState<HagerignaHymn[]>([]);
   const [sdaHymns, setSdaHymns] = useState<SDAHymn[]>([]);
@@ -20,6 +21,9 @@ const MusicDashboard: React.FC = () => {
   const [filteredSdaHymns, setFilteredSdaHymns] = useState<SDAHymn[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [youtubeLinks, setYoutubeLinks] = useState<YouTubeLink[]>([]);
+  const [youtubeUrlInput, setYoutubeUrlInput] = useState('');
+  const [youtubeAdding, setYoutubeAdding] = useState(false);
   
   // Modal states
   const [showAddHagerignaModal, setShowAddHagerignaModal] = useState(false);
@@ -34,15 +38,7 @@ const MusicDashboard: React.FC = () => {
   
   const { showToast } = useToast();
 
-  useEffect(() => {
-    loadHymns();
-  }, []);
-
-  useEffect(() => {
-    handleSearch(searchQuery);
-  }, [searchQuery, hagerignaHymns, sdaHymns, activeHymnal]);
-
-  const loadHymns = async () => {
+  const loadHymns = useCallback(async () => {
     try {
       setLoading(true);
       const [hagerignaData, sdaData] = await Promise.all([
@@ -60,9 +56,50 @@ const MusicDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  }, [showToast]);
+
+  const loadYouTubeLinks = useCallback(async () => {
+    try {
+      const youtubeData = await hymnalService.getYouTubeLinks();
+      setYoutubeLinks(youtubeData);
+    } catch (error) {
+      console.error('Error fetching YouTube links:', error);
+      showToast('Failed to load YouTube links', 'error');
+    }
+  }, [showToast]);
+
+  const handleAddYouTubeLink = async () => {
+    if (!youtubeUrlInput.trim()) {
+      showToast('YouTube URL is required', 'error');
+      return;
+    }
+
+    setYoutubeAdding(true);
+    try {
+      const newLink = await hymnalService.addYouTubeLink({ url: youtubeUrlInput.trim() });
+      setYoutubeLinks((prev) => [newLink, ...prev]);
+      setYoutubeUrlInput('');
+      showToast('YouTube link added with details', 'success');
+    } catch (error) {
+      console.error('Failed to add YouTube link:', error);
+      showToast('Failed to add YouTube link', 'error');
+    } finally {
+      setYoutubeAdding(false);
+    }
   };
 
-  const handleSearch = (query: string) => {
+  const handleDeleteYouTubeLink = async (id: string) => {
+    try {
+      await hymnalService.deleteYouTubeLink(id);
+      setYoutubeLinks((prev) => prev.filter((link) => link.id !== id));
+      showToast('YouTube link deleted', 'success');
+    } catch (error) {
+      console.error('Failed to delete YouTube link:', error);
+      showToast('Failed to delete YouTube link', 'error');
+    }
+  };
+
+  const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
     
     if (!query.trim()) {
@@ -91,7 +128,19 @@ const MusicDashboard: React.FC = () => {
     
     setFilteredHagerignaHymns(filteredHagerigna);
     setFilteredSdaHymns(filteredSDA);
-  };
+  }, [hagerignaHymns, sdaHymns]);
+
+  useEffect(() => {
+    loadHymns();
+  }, [loadHymns]);
+
+  useEffect(() => {
+    loadYouTubeLinks();
+  }, [loadYouTubeLinks]);
+
+  useEffect(() => {
+    handleSearch(searchQuery);
+  }, [searchQuery, handleSearch, activeHymnal]);
 
   // Hagerigna hymn handlers
   const handleAddHagerignaHymn = async (hymnData: Omit<HagerignaHymn, 'id'>) => {
@@ -240,12 +289,15 @@ const MusicDashboard: React.FC = () => {
                   Hymnal Database
                 </h1>
                 <p className="text-gray-600 mt-1">
-                  Manage your hymnal collections • {getCurrentCount()} hymns
+                  {activeSection === 'youtube'
+                    ? `Manage your YouTube links • ${youtubeLinks.length} links`
+                    : `Manage your hymnal collections • ${getCurrentCount()} hymns`}
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            {activeSection !== 'youtube' && (
+              <div className="flex items-center gap-3">
               <button
                 onClick={() => activeHymnal === 'hagerigna' ? setShowAddHagerignaModal(true) : setShowAddSDAModal(true)}
                 className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 font-medium"
@@ -253,17 +305,21 @@ const MusicDashboard: React.FC = () => {
                 <Plus className="w-5 h-5" />
                 Add Hymn
               </button>
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Hymnal Selection Buttons */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 mb-6">
+        <div className="sticky top-4 z-30 bg-white/85 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 p-6 mb-6">
           <div className="flex items-center justify-center gap-4">
             <button
-              onClick={() => setActiveHymnal('sda')}
+              onClick={() => {
+                setActiveSection('sda');
+                setActiveHymnal('sda');
+              }}
               className={`flex items-center gap-3 px-8 py-4 rounded-xl font-semibold transition-all duration-200 ${
-                activeHymnal === 'sda'
+                activeSection === 'sda'
                   ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
@@ -273,9 +329,12 @@ const MusicDashboard: React.FC = () => {
             </button>
             
             <button
-              onClick={() => setActiveHymnal('hagerigna')}
+              onClick={() => {
+                setActiveSection('hagerigna');
+                setActiveHymnal('hagerigna');
+              }}
               className={`flex items-center gap-3 px-8 py-4 rounded-xl font-semibold transition-all duration-200 ${
-                activeHymnal === 'hagerigna'
+                activeSection === 'hagerigna'
                   ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
@@ -283,25 +342,128 @@ const MusicDashboard: React.FC = () => {
               <Heart className="w-6 h-6" />
               Hagerigna ({filteredHagerignaHymns.length})
             </button>
+
+            <button
+              onClick={() => setActiveSection('youtube')}
+              className={`flex items-center gap-3 px-8 py-4 rounded-xl font-semibold transition-all duration-200 ${
+                activeSection === 'youtube'
+                  ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Youtube className="w-6 h-6" />
+              YouTube Links ({youtubeLinks.length})
+            </button>
           </div>
         </div>
 
         {/* Search Bar */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 mb-6">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+        {activeSection !== 'youtube' && (
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 mb-6">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder={`Search ${activeHymnal === 'sda' ? 'SDA hymns' : 'Hagerigna hymns'}...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* YouTube Links */}
+        {activeSection === 'youtube' && (
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Youtube className="w-5 h-5 text-red-600" />
+            <h2 className="text-lg font-semibold text-gray-800">YouTube Links</h2>
+            <span className="text-sm text-gray-500">({youtubeLinks.length})</span>
+          </div>
+
+          <div className="flex flex-wrap gap-3 mb-4">
             <input
               type="text"
-              placeholder={`Search ${activeHymnal === 'sda' ? 'SDA hymns' : 'Hagerigna hymns'}...`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="Paste YouTube URL (title, channel, duration will be fetched automatically)"
+              value={youtubeUrlInput}
+              onChange={(e) => setYoutubeUrlInput(e.target.value)}
+              className="flex-1 min-w-[200px] px-4 py-3 bg-white/60 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500"
             />
+            <button
+              onClick={handleAddYouTubeLink}
+              disabled={youtubeAdding || !youtubeUrlInput.trim()}
+              className="bg-red-600 text-white px-6 py-3 rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              {youtubeAdding ? 'Adding…' : 'Add Link'}
+            </button>
           </div>
+
+          {youtubeLinks.length === 0 ? (
+            <p className="text-sm text-gray-500">No YouTube links added yet. Paste a URL and click Add Link; title, channel, and duration will be saved automatically.</p>
+          ) : (
+            <div className="space-y-3">
+              {youtubeLinks.map((link) => (
+                <div
+                  key={link.id}
+                  className="flex items-start gap-4 p-4 bg-white/60 border border-gray-100 rounded-xl"
+                >
+                  {link.thumbnailUrl && (
+                    <a href={link.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                      <img
+                        src={link.thumbnailUrl}
+                        alt=""
+                        className="w-32 aspect-video object-cover rounded-lg"
+                      />
+                    </a>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-gray-800 hover:text-red-600 block break-words"
+                    >
+                      {link.title ||
+                        (link.channelTitle || link.duration
+                          ? [link.channelTitle, link.duration].filter(Boolean).join(' · ')
+                          : link.videoId
+                            ? `YouTube video ${link.videoId}`
+                            : link.url)}
+                    </a>
+                    {(link.channelTitle || link.duration) && link.title && (
+                      <p className="text-sm text-gray-500 mt-0.5">
+                        {link.channelTitle && <span>{link.channelTitle}</span>}
+                        {link.channelTitle && link.duration && ' · '}
+                        {link.duration && <span>{link.duration}</span>}
+                      </p>
+                    )}
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:underline truncate block mt-1"
+                    >
+                      {link.url}
+                    </a>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteYouTubeLink(link.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                    aria-label="Delete YouTube link"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+        )}
 
                 {/* Hymns Display */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
+        {activeSection !== 'youtube' && (
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
           {(() => {
             // console.log('Rendering hymns display. Active hymnal:', activeHymnal, 'Current count:', getCurrentCount(), 'Filtered hymns:', activeHymnal === 'hagerigna' ? filteredHagerignaHymns.length : filteredSdaHymns.length);
             return null;
@@ -328,6 +490,7 @@ const MusicDashboard: React.FC = () => {
             />
           )}
         </div>
+        )}
       </div>
 
       {/* Modals */}

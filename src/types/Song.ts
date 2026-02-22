@@ -37,6 +37,18 @@ export interface SDAHymn {
   updatedAt?: string;
 }
 
+export interface YouTubeLink {
+  id: string;
+  url: string;
+  videoId?: string;
+  title?: string;
+  channelTitle?: string;
+  duration?: string | null;
+  thumbnailUrl?: string | null;
+  description?: string | null;
+  createdAt?: string;
+}
+
 export const HYMN_CATEGORIES = [
   'Worship',
   'Praise',

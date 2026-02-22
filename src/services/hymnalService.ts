@@ -1,4 +1,4 @@
-import { HagerignaHymn, SDAHymn, HymnalType } from '../types/Song';
+import { HagerignaHymn, SDAHymn, HymnalType, YouTubeLink } from '../types/Song';
 import { API_BASE_URL } from '../config/api';
 
 class HymnalService {
@@ -195,6 +195,54 @@ class HymnalService {
       return await response.json();
     } catch (error) {
       console.error('Error uploading audio:', error);
+      throw error;
+    }
+  }
+
+  async getYouTubeLinks(): Promise<YouTubeLink[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/youtube-links`, this.fetchOptions);
+      if (!response.ok) {
+        throw new Error('Failed to fetch YouTube links');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching YouTube links:', error);
+      throw error;
+    }
+  }
+
+  async addYouTubeLink(payload: { url: string }): Promise<YouTubeLink> {
+    try {
+      const response = await fetch(`${this.baseUrl}/youtube-links`, {
+        ...this.fetchOptions,
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add YouTube link');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error adding YouTube link:', error);
+      throw error;
+    }
+  }
+
+  async deleteYouTubeLink(id: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/youtube-links/${id}`, {
+        ...this.fetchOptions,
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete YouTube link');
+      }
+    } catch (error) {
+      console.error('Error deleting YouTube link:', error);
       throw error;
     }
   }

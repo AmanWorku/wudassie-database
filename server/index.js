@@ -7,6 +7,7 @@ import helmet from "helmet";
 import songRoutes from "./routes/songs.js";
 import hymnRoutes from "./routes/hymns.js";
 import uploadRoutes from "./routes/upload.js";
+import youtubeLinksRoutes from "./routes/youtubeLinks.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 // Load .env file - try multiple possible paths
@@ -101,6 +102,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/songs", songRoutes);
 app.use("/api", hymnRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api", youtubeLinksRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {
