@@ -9,6 +9,7 @@ import hymnRoutes from "./routes/hymns.js";
 import uploadRoutes from "./routes/upload.js";
 import youtubeLinksRoutes from "./routes/youtubeLinks.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { connectToMongo } from "./db/mongo.js";
 
 // Load .env file - try multiple possible paths
 const __filename = fileURLToPath(import.meta.url);
@@ -51,6 +52,10 @@ if (result.error || !envPath) {
 	console.log(
 		"🔑 IMAGEKIT_URL_ENDPOINT:",
 		process.env.IMAGEKIT_URL_ENDPOINT ? "✅ Set" : "❌ Not set"
+	);
+	console.log(
+		"🔑 MONGODB_URI:",
+		process.env.MONGODB_URI || process.env.MONGO_URI ? "✅ Set (YouTube links will persist)" : "❌ Not set (using JSON file)"
 	);
 }
 
@@ -97,6 +102,9 @@ app.options("*", cors());
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
+
+// Connect to MongoDB if MONGODB_URI is set (for production / persistent YouTube links)
+connectToMongo().catch((err) => console.error("Mongo connect error:", err));
 
 // Routes
 app.use("/api/songs", songRoutes);

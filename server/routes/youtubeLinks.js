@@ -1,6 +1,8 @@
 import express from "express";
 import { v4 as uuidv4 } from "uuid";
 import { readJsonFileOrDefault, writeJsonFile } from "../utils/fileUtils.js";
+import { isMongoConnected } from "../db/mongo.js";
+import YouTubeLinkModel from "../models/YouTubeLink.js";
 
 const router = express.Router();
 const YOUTUBE_FILE = "YouTubeLinks.json";
@@ -74,6 +76,20 @@ async function fetchYoutubeOEmbed(videoUrl) {
 }
 
 const readLinks = async () => {
+	if (isMongoConnected()) {
+		const docs = await YouTubeLinkModel.find().sort({ createdAt: -1 }).lean();
+		return docs.map((d) => ({
+			id: d.id,
+			url: d.url,
+			videoId: d.videoId,
+			title: d.title,
+			channelTitle: d.channelTitle,
+			duration: d.duration,
+			thumbnailUrl: d.thumbnailUrl,
+			description: d.description,
+			createdAt: d.createdAt ? new Date(d.createdAt).toISOString() : null,
+		}));
+	}
 	const data = await readJsonFileOrDefault(YOUTUBE_FILE, []);
 	return Array.isArray(data) ? data : [];
 };
@@ -113,7 +129,6 @@ router.post("/youtube-links", async (req, res) => {
 			metadata = { title: "", channelTitle: "", duration: null, thumbnailUrl: null, description: null };
 		}
 
-		const links = await readLinks();
 		const newLink = {
 			id: `yt-${uuidv4()}`,
 			url: videoUrl,
@@ -126,6 +141,13 @@ router.post("/youtube-links", async (req, res) => {
 			createdAt: new Date().toISOString(),
 		};
 
+		if (isMongoConnected()) {
+			await YouTubeLinkModel.create(newLink);
+			console.log("YouTube link saved to MongoDB:", newLink.id, newLink.title);
+			return res.status(201).json(newLink);
+		}
+
+		const links = await readLinks();
 		links.unshift(newLink);
 		await writeJsonFile(YOUTUBE_FILE, links);
 		console.log("YouTube link saved to JSON:", newLink.id, newLink.title, newLink.channelTitle, newLink.duration ? newLink.duration : "(no duration)");
@@ -138,13 +160,19 @@ router.post("/youtube-links", async (req, res) => {
 
 router.delete("/youtube-links/:id", async (req, res) => {
 	try {
+		if (isMongoConnected()) {
+			const result = await YouTubeLinkModel.deleteOne({ id: req.params.id });
+			if (result.deletedCount === 0) {
+				return res.status(404).json({ error: "YouTube link not found" });
+			}
+			return res.status(204).send();
+		}
+
 		const links = await readLinks();
 		const filtered = links.filter((link) => link.id !== req.params.id);
-
 		if (filtered.length === links.length) {
 			return res.status(404).json({ error: "YouTube link not found" });
 		}
-
 		await writeJsonFile(YOUTUBE_FILE, filtered);
 		res.status(204).send();
 	} catch (error) {
