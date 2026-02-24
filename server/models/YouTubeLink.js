@@ -4,7 +4,7 @@ const schema = new mongoose.Schema(
 	{
 		id: { type: String, required: true, unique: true },
 		url: { type: String, required: true },
-		videoId: { type: String, required: true },
+		videoId: { type: String, default: "" },
 		title: { type: String, default: "Unknown" },
 		channelTitle: { type: String, default: "" },
 		duration: { type: String, default: null },

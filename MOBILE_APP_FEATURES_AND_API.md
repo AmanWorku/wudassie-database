@@ -82,6 +82,10 @@ When you add a link (POST with `url` only), the backend fetches metadata from Yo
 
 - `GET /health`
 
+### Categories
+
+- `GET /categories` - returns all available categories from backend storage
+
 ### Hagerigna
 
 - `GET /hagerigna`

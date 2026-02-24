@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { seedMongoFromJsonIfNeeded } from "./seedMongoFromJson.js";
 
 let isConnected = false;
 
@@ -15,7 +16,9 @@ export async function connectToMongo() {
 	try {
 		await mongoose.connect(uri);
 		isConnected = true;
-		console.log("✅ MongoDB connected – YouTube links will persist.");
+		console.log("✅ MongoDB connected.");
+		await seedMongoFromJsonIfNeeded();
+		console.log("✅ MongoDB seed check complete (hagerigna, sda, categories, youtube_links).");
 	} catch (err) {
 		console.error("❌ MongoDB connection failed:", err.message);
 	}

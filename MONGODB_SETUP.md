@@ -1,6 +1,14 @@
-# MongoDB setup – so YouTube links persist on the deployed site
+# MongoDB setup – so hymns, hagerigna, categories, and YouTube links persist
 
-When **MONGODB_URI** is set, the backend stores YouTube links in MongoDB instead of a JSON file. That way data survives restarts and redeploys on Render.
+When **MONGODB_URI** is set, the backend stores data in MongoDB collections instead of JSON files. That way data survives restarts and redeploys on Render.
+
+Collections used:
+- `hagerignahymns`
+- `sdahymns`
+- `categories`
+- `youtubelinks`
+
+On first successful MongoDB connection, the server auto-seeds these collections from your existing JSON files if the collections are empty.
 
 ---
 
