@@ -36,6 +36,21 @@ export const writeJsonFile = async (filename, data) => {
 	await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
 };
 
+/** Read JSON file or return default if file does not exist (e.g. for new lists). */
+export const readJsonFileOrDefault = async (filename, defaultValue = []) => {
+	await ensureDataDir();
+	const filePath = path.join(DATA_DIR, filename);
+	try {
+		const data = await fs.readFile(filePath, "utf8");
+		return JSON.parse(data);
+	} catch (error) {
+		if (error.code === "ENOENT") {
+			return defaultValue;
+		}
+		throw error;
+	}
+};
+
 // Helper function to find array by name in the data structure
 const findArrayByName = (data, name) => {
 	return data.resources?.array?.find((arr) => arr._name === name);

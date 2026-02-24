@@ -1,6 +1,6 @@
 import express from "express";
 import { v4 as uuidv4 } from "uuid";
-import { readJsonFile, writeJsonFile } from "../utils/fileUtils.js";
+import { readJsonFileOrDefault, writeJsonFile } from "../utils/fileUtils.js";
 
 const router = express.Router();
 const YOUTUBE_FILE = "YouTubeLinks.json";
@@ -74,15 +74,8 @@ async function fetchYoutubeOEmbed(videoUrl) {
 }
 
 const readLinks = async () => {
-	try {
-		const data = await readJsonFile(YOUTUBE_FILE);
-		return Array.isArray(data) ? data : [];
-	} catch (error) {
-		if (String(error.message || "").includes("not found")) {
-			return [];
-		}
-		throw error;
-	}
+	const data = await readJsonFileOrDefault(YOUTUBE_FILE, []);
+	return Array.isArray(data) ? data : [];
 };
 
 router.get("/youtube-links", async (req, res) => {
@@ -124,17 +117,18 @@ router.post("/youtube-links", async (req, res) => {
 		const newLink = {
 			id: `yt-${uuidv4()}`,
 			url: videoUrl,
-			videoId,
-			title: metadata.title || "Unknown",
-			channelTitle: metadata.channelTitle || "",
-			duration: metadata.duration || null,
-			thumbnailUrl: metadata.thumbnailUrl || null,
-			description: metadata.description || null,
+			videoId: videoId,
+			title: metadata.title != null && metadata.title !== "" ? String(metadata.title) : "Unknown",
+			channelTitle: metadata.channelTitle != null ? String(metadata.channelTitle) : "",
+			duration: metadata.duration != null ? String(metadata.duration) : null,
+			thumbnailUrl: metadata.thumbnailUrl != null ? String(metadata.thumbnailUrl) : null,
+			description: metadata.description != null ? String(metadata.description) : null,
 			createdAt: new Date().toISOString(),
 		};
 
 		links.unshift(newLink);
 		await writeJsonFile(YOUTUBE_FILE, links);
+		console.log("YouTube link saved to JSON:", newLink.id, newLink.title, newLink.channelTitle, newLink.duration ? newLink.duration : "(no duration)");
 		res.status(201).json(newLink);
 	} catch (error) {
 		console.error("Error adding YouTube link:", error);
